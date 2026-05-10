@@ -410,6 +410,8 @@ void D_RunFrame()
     static int wipestart;
     static boolean wipe;
 
+    INS_BeginFrame();
+
     if (wipe)
     {
         do
@@ -449,6 +451,8 @@ void D_RunFrame()
             I_FinishUpdate ();              // page flip or blit buffer
         }
     }
+
+    INS_EndTransmit();
 }
 
 //
