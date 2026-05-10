@@ -27,6 +27,7 @@
 
 #include "config.h"
 #include "deh_main.h"
+#include "doom/instrumentation.h"
 #include "doomdef.h"
 #include "doomstat.h"
 
@@ -1938,6 +1939,9 @@ void D_DoomMain (void)
 
     DEH_printf("ST_Init: Init status bar.\n");
     ST_Init ();
+
+    // INS instrumentation init
+    INS_Init("127.0.0.1", 6767);
 
     // If Doom II without a MAP01 lump, this is a store demo.
     // Moved this here so that MAP01 isn't constantly looked up
