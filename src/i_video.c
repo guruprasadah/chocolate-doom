@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "SDL.h"
 #include "SDL_opengl.h"
@@ -48,6 +49,9 @@
 #include "w_wad.h"
 #include "z_zone.h"
 
+#ifdef BUILDING_DOOM
+    #include "doom/instrumentation.h"
+#endif
 // These are (1) the window (or the full screen) that our game is rendered to
 // and (2) the renderer that scales the texture (see below) into this window.
 
@@ -821,6 +825,10 @@ void I_FinishUpdate (void)
 
     // Restore background and undo the disk indicator, if it was drawn.
     V_RestoreDiskBackground();
+
+    #ifdef BUILDING_DOOM
+        INS_UpdateScreen(I_VideoBuffer);
+    #endif
 }
 
 

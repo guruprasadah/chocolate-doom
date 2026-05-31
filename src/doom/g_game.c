@@ -21,6 +21,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "doom/instrumentation_types.h"
+#include "instrumentation.h"
 #include "doomdef.h" 
 #include "doomkeys.h"
 #include "doomstat.h"
@@ -649,6 +651,18 @@ void G_BuildTiccmd (ticcmd_t* cmd, int maketic)
 
         carry = desired_angleturn - cmd->angleturn;
     }
+
+    // hook
+    INS_InjectInput(cmd);
+
+    // Clear previous turn state
+    gamekeydown[key_left] = false;
+    gamekeydown[key_right] = false;
+    
+    if (ins_input.turn == -1)
+        gamekeydown[key_left] = true;
+    else if (ins_input.turn == +1)
+        gamekeydown[key_right] = true;
 } 
  
 

@@ -120,8 +120,18 @@ static int player_class;
 
 // 35 fps clock adjusted by offsetms milliseconds
 
+#ifdef BUILDING_DOOM
+    #include "doom/instrumentation_types.h"
+#endif
 static int GetAdjustedTime(void)
 {
+    #ifdef BUILDING_DOOM
+        if(ins_net_init)
+        {
+            static int counter = 0;
+            return counter++;
+        }
+    #endif
     int time_ms;
 
     time_ms = I_GetTimeMS();
@@ -682,6 +692,46 @@ void TryRunTics (void)
     int realtics;
     int	availabletics;
     int	counts;
+
+#ifdef BUILDING_DOOM
+    if (ins_net_init)
+    {
+        // UNLIMITED MODE: Just run as many tics as possible instantly
+        
+        if (singletics)
+        {
+            BuildNewTic();
+        }
+        else
+        {
+            // Keep building tics until buffer is full
+            while (BuildNewTic());
+        }
+        
+        lowtic = GetLowTic();
+        availabletics = lowtic - gametic;
+        
+        // Run all available tics
+        while (availabletics > 0)
+        {
+            ticcmd_set_t *set;
+            
+            if (!PlayersInGame())
+                return;
+            
+            set = &ticdata[gametic % BACKUPTICS];
+            SinglePlayerClear(set);
+            
+            memcpy(local_playeringame, set->ingame, sizeof(local_playeringame));
+            loop_interface->RunTic(set->cmds, set->ingame);
+            gametic++;
+            
+            availabletics--;
+        }
+        
+        return;  // Done, no rendering wait
+    }
+#endif
 
     // get real tics
     entertic = I_GetTime() / ticdup;

@@ -20,6 +20,7 @@
 
 #include "doomdef.h"
 #include "d_event.h"
+#include "d_items.h"
 
 #include "deh_misc.h"
 

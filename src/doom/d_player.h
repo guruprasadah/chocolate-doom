@@ -25,7 +25,6 @@
 // of other structs: items (internal inventory),
 // animation states (closely tied to the sprites
 // used to represent them, unfortunately).
-#include "d_items.h"
 #include "p_pspr.h"
 
 // In addition, the player is just a special
@@ -35,9 +34,9 @@
 // Finally, for odd reasons, the player input
 // is buffered within the player data struct,
 // as commands per game tick.
-#include "d_ticcmd.h"
+#include "../d_ticcmd.h"
 
-#include "net_defs.h"
+#include "../net_defs.h"
 
 
 

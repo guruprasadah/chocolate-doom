@@ -17,6 +17,7 @@
 
 
 
+#include "instrumentation_types.h"
 #include "z_zone.h"
 #include "doomdef.h"
 #include "deh_main.h"
@@ -321,6 +322,10 @@ EV_DoDoor
 	}
 		
     }
+
+	if(rtn != 0)
+		ins_outbound.interactions += 1;
+	
     return rtn;
 }
 

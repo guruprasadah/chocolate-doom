@@ -27,7 +27,7 @@
 
 #include "config.h"
 #include "deh_main.h"
-#include "doom/instrumentation.h"
+#include "instrumentation.h"
 #include "doomdef.h"
 #include "doomstat.h"
 
@@ -451,6 +451,8 @@ void D_RunFrame()
             I_FinishUpdate ();              // page flip or blit buffer
         }
     }
+
+    INS_Process(&players[consoleplayer]);
 
     INS_EndTransmit();
 }

@@ -20,9 +20,12 @@
 
 
 // Data.
+#include "doom/p_mobj.h"
+#include "instrumentation_types.h"
 #include "doomdef.h"
 #include "dstrings.h"
 #include "sounds.h"
+#include "d_items.h"
 
 #include "deh_main.h"
 #include "deh_misc.h"
@@ -97,7 +100,9 @@ P_GiveAmmo
     player->ammo[ammo] += num;
 
     if (player->ammo[ammo] > player->maxammo[ammo])
-	player->ammo[ammo] = player->maxammo[ammo];
+		player->ammo[ammo] = player->maxammo[ammo];
+
+	ins_outbound.ammo_picked_up += player->ammo[ammo] - oldammo;
 
     // If non zero ammo, 
     // don't change up weapons,
@@ -207,6 +212,9 @@ P_GiveWeapon
 	player->weaponowned[weapon] = true;
 	player->pendingweapon = weapon;
     }
+
+	if(gaveweapon)
+		ins_outbound.weapons_picked_up += 1;
 	
     return (gaveweapon || gaveammo);
 }
@@ -222,6 +230,8 @@ P_GiveBody
 ( player_t*	player,
   int		num )
 {
+	int oldhealth = player->health;
+
     if (player->health >= MAXHEALTH)
 	return false;
 		
@@ -229,8 +239,10 @@ P_GiveBody
     if (player->health > MAXHEALTH)
 	player->health = MAXHEALTH;
     player->mo->health = player->health;
+
+	ins_outbound.health_picked_up = player->health - oldhealth;
 	
-    return true;
+	return true;
 }
 
 
@@ -246,6 +258,7 @@ P_GiveArmor
   int		armortype )
 {
     int		hits;
+	int oldhits = player->armorpoints;
 	
     hits = armortype*100;
     if (player->armorpoints >= hits)
@@ -253,6 +266,8 @@ P_GiveArmor
 		
     player->armortype = armortype;
     player->armorpoints = hits;
+
+	ins_outbound.armor_picked_up = hits - oldhits;
 	
     return true;
 }
@@ -272,6 +287,8 @@ P_GiveCard
     
     player->bonuscount = BONUSADD;
     player->cards[card] = 1;
+
+	ins_outbound.cards_picked_up += 1;
 }
 
 
@@ -883,6 +900,11 @@ P_DamageMobj
 	player->health -= damage; 	// mirror mobj health here for Dave
 	if (player->health < 0)
 	    player->health = 0;
+
+	if (player == &players[consoleplayer])
+	{
+		ins_outbound.damage_taken += damage;
+	}
 	
 	player->attacker = source;
 	player->damagecount += damage;	// add damage after armor / invuln
@@ -901,7 +923,16 @@ P_DamageMobj
     if (target->health <= 0)
     {
 	P_KillMobj (source, target);
+	if (source && source->player && target->flags & MF_COUNTKILL)
+	{
+		ins_outbound.kill_count += 1;
+	}
 	return;
+    }
+
+	if (source && source->player)
+    {
+        ins_outbound.damage_dealt += damage;
     }
 
     if ( (P_Random () < target->info->painchance)
