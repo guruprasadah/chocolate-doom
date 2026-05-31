@@ -1,102 +1,257 @@
-# Chocolate Doom
+# 🎮 DoomRL: Reinforcement Learning Experiments in Chocolate Doom
 
-Chocolate Doom aims to accurately reproduce the original DOS version of
-Doom and other games based on the Doom engine in a form that can be
-run on modern computers.
+<div align="center">
 
-Originally, Chocolate Doom was only a Doom source port. The project
-now includes ports of Heretic and Hexen, and Strife.
+### Teaching a Neural Network to Survive in Doom
 
-Chocolate Doom’s aims are:
+*An experimental reinforcement learning environment built by instrumenting Chocolate Doom and exposing it to Python-based PPO training.*
 
- * To always be 100% Free and Open Source software.
- * Portability to as many different operating systems as possible.
- * Accurate reproduction of the original DOS versions of the games,
-   including bugs.
- * Compatibility with the DOS demo, configuration and savegame files.
- * To provide an accurate retro “feel” (display and input should
-   behave the same).
+![status](https://img.shields.io/badge/status-experimental-orange)
+![language](https://img.shields.io/badge/C-C99-blue)
+![python](https://img.shields.io/badge/Python-3.13-blue)
+![rl](https://img.shields.io/badge/Reinforcement%20Learning-PPO-green)
+![engine](https://img.shields.io/badge/Engine-Chocolate%20Doom-red)
 
-More information about the philosophy and design behind Chocolate Doom
-can be found in the PHILOSOPHY file distributed with the source code.
+</div>
 
-## Setting up gameplay
+---
 
-For instructions on how to set up Chocolate Doom for play, see the
-INSTALL file.
+## ✨ Overview
 
-## Configuration File
+This project explores how a classic game engine can be transformed into a reinforcement learning environment.
 
-Chocolate Doom is compatible with the DOS Doom configuration file
-(normally named `default.cfg`). Existing configuration files for DOS
-Doom should therefore simply work out of the box. However, Chocolate
-Doom also provides some extra settings. These are stored in a
-separate file named `chocolate-doom.cfg`.
+Using a modified build of **Chocolate Doom**, I implemented a lightweight instrumentation layer that:
 
-The configuration can be edited using the chocolate-setup tool.
+* Captures game state and rendered frames
+* Exposes observations to a Python training process
+* Accepts agent actions in real time
+* Runs the simulation uncapped for accelerated training
+* Provides reward signals based on combat, exploration, and progression
 
-## Command line options
+The goal was not to create a production-grade RL benchmark, but rather to understand:
 
-Chocolate Doom supports a number of command line parameters, including
-some extras that were not originally suported by the DOS versions. For
-binary distributions, see the CMDLINE file included with your
-download; more information is also available on the Chocolate Doom
-website.
+* Game engine internals
+* Reinforcement learning pipelines
+* Environment design
+* Reward shaping
+* Simulator throughput optimization
 
-## Playing TCs
+---
 
-With Vanilla Doom there is no way to include sprites in PWAD files.
-Chocolate Doom’s ‘-file’ command line option behaves exactly the same
-as Vanilla Doom, and trying to play TCs by adding the WAD files using
-‘-file’ will not work.
+## 📸 Architecture
 
-Many Total Conversions (TCs) are distributed as a PWAD file which must
-be merged into the main IWAD. Typically a copy of DEUSF.EXE is
-included which performs this merge. Chocolate Doom includes a new
-option, ‘-merge’, which will simulate this merge. Essentially, the
-WAD directory is merged in memory, removing the need to modify the
-IWAD on disk.
+```mermaid
+flowchart TD
+    CD["Chocolate Doom<br/><br/>
+    • Game Simulation<br/>
+    • Frame Extraction<br/>
+    • Reward Instrumentation<br/>
+    • Fast-Tick Execution"]
 
-To play TCs using Chocolate Doom, run like this:
+    PT["Python Trainer<br/><br/>
+    • Gymnasium Environment<br/>
+    • PPO (Stable-Baselines)<br/>
+    • Frame Stacking<br/>
+    • Reward Processing"]
 
-```
-chocolate-doom -merge thetc.wad
-```
+    NN["Neural Network<br/><br/>
+    CNN Feature Extractor<br/>
+    PPO Policy + Value Net"]
 
-Here are some examples:
-
-```
-chocolate-doom -merge batman.wad -deh batman.deh vbatman.deh  (Batman Doom)
-chocolate-doom -merge aoddoom1.wad -deh aoddoom1.deh  (Army of Darkness Doom)
+    CD -->|TCP Socket| PT
+    PT --> NN
 ```
 
-## Other information
+---
 
- * Chocolate Doom includes a number of different options for music
-   playback. See the README.Music file for more details.
+## 🧠 Observation Space
 
- * More information, including information about how to play various
-   classic TCs, is available on the Chocolate Doom website:
+The agent receives:
 
-     https://www.chocolate-doom.org/
+### Visual Input
 
-   You are encouraged to sign up and contribute any useful information
-   you may have regarding the port!
+* Grayscale game frames
+* Resolution reduced for training efficiency
+* Frame stacking for temporal awareness
 
- * Chocolate Doom is not perfect. Although it aims to accurately
-   emulate and reproduce the DOS executables, some behavior can be very
-   difficult to reproduce. Because of the nature of the project, you
-   may also encounter Vanilla Doom bugs; these are intentionally
-   present; see the NOT-BUGS file for more information.
+```text
+Shape:
+(4, 100, 160)
 
-   New bug reports, feedback, questions or suggestions can be submitted
-   to the issue tracker on Github:
+Meaning:
+4 consecutive grayscale frames
+```
 
-     https://github.com/chocolate-doom/chocolate-doom/issues
+This allows the agent to infer:
 
- * Source code patches are welcome, but please follow the style
-   guidelines - see the file named HACKING included with the source
-   distribution.
+* Movement
+* Enemy locations
+* Projectiles
+* Spatial layout
 
- * Chocolate Doom is distributed under the GNU GPL. See the COPYING
-   file for more information.
+without direct access to internal game state.
+
+---
+
+## 🎯 Action Space
+
+The policy outputs continuous actions:
+
+| Action           | Description                 |
+| ---------------- | --------------------------- |
+| Forward/Backward | Move along facing direction |
+| Strafe           | Move sideways               |
+| Turn             | Rotate view                 |
+| Attack           | Fire weapon                 |
+| Use              | Interact with environment   |
+
+Actions are converted into native Doom input commands before being injected into the engine.
+
+---
+
+## ⚡ Fast Simulation Mode
+
+A major objective of the project was increasing training throughput.
+
+The engine can operate in an **uncapped simulation mode**, bypassing normal frame pacing and advancing game ticks as quickly as the CPU allows.
+
+Benefits:
+
+* More experience per second
+* Faster policy iteration
+* Reduced wall-clock training time
+
+This is often one of the most important optimizations in RL environments.
+
+---
+
+## 📊 Instrumentation
+
+The modified engine tracks a variety of gameplay metrics.
+
+### Combat
+
+* Damage dealt
+* Damage taken
+* Kill count
+* Ammunition consumption
+
+### Exploration & Progress
+
+* Door interactions
+* Keycard collection
+* Weapon pickups
+* Health pickups
+* Armor pickups
+* Episode completion
+
+### Spatial Information
+
+* Player velocity
+* Position
+* Enemy-relative metrics used for reward shaping
+
+---
+
+## 🏆 Reward Design
+
+The reward function combines several objectives:
+
+### Positive Rewards
+
+✅ Eliminating enemies
+
+✅ Dealing damage
+
+✅ Collecting key progression items
+
+✅ Interacting with the environment
+
+✅ Completing levels
+
+### Negative Rewards
+
+❌ Taking damage
+
+❌ Dying
+
+❌ Repeatedly visiting the same locations
+
+❌ Wasting ammunition
+
+The reward system evolved through experimentation and should be viewed as a learning exercise rather than a finalized design.
+
+---
+
+## 🏗️ Technical Stack
+
+### Engine Side
+
+* Chocolate Doom
+* C99
+* SDL
+
+### Training Side
+
+* Python 3.13
+* Gymnasium
+* Stable-Baselines3
+* PyTorch
+* OpenCV
+* TensorBoard
+
+---
+
+## 🔬 What I Learned
+
+This project taught me considerably more about environment engineering than about neural networks themselves.
+
+Some key lessons:
+
+* RL performance is heavily influenced by simulator design.
+* Observation and reward engineering matter as much as model architecture.
+* Throughput often becomes a bigger bottleneck than learning algorithms.
+* Small reward-design decisions can dramatically change learned behavior.
+* Instrumenting existing software systems is often harder than training the model.
+
+---
+
+## 🚧 Current Status
+
+**Project Status:** Archived / Experimental
+
+Development has been paused while I explore other projects and areas of interest.
+
+The environment functions as a proof-of-concept and learning platform rather than a finished research artifact.
+
+Future work could include:
+
+* More sophisticated reward shaping
+* Additional environment instrumentation
+* Better episode management
+* Multi-level training
+* Alternative RL algorithms
+* Improved observation pipelines
+
+---
+
+## 📚 Motivation
+
+I built this project primarily to better understand:
+
+* Reinforcement learning
+* Game engine architecture
+* Simulation environments
+
+Classic Doom provides a surprisingly rich playground for experimentation, and modifying an existing engine proved to be an excellent way to learn how RL environments are constructed from the ground up.
+
+---
+
+<div align="center">
+
+### Built for learning, experimentation, and curiosity.
+
+*"The neural network did not become the Doom Slayer.<br>
+It mostly learned new and inventive ways to run into walls, and hack my rewards."*
+
+</div>
