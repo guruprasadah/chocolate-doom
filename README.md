@@ -252,6 +252,6 @@ Classic Doom provides a surprisingly rich playground for experimentation, and mo
 ### Built for learning, experimentation, and curiosity.
 
 *"The neural network did not become the Doom Slayer.<br>
-It mostly learned new and inventive ways to run into walls, and hack my rewards."*
+It mostly learned new and inventive ways to run into walls, shoot the occasional barrel and enemy, and hack my rewards."*
 
 </div>
